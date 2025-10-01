@@ -7,7 +7,6 @@ console.log("[ee] module loaded");
 
 export async function GET() {
   console.log("[ee] handler running");
-  return new Response(JSON.stringify({ ok: true }), { status: 200 });
   console.log("[env] EE_CLIENT_EMAIL:", process.env.EE_CLIENT_EMAIL);
   console.log(
     "[env] EE_PRIVATE_KEY starts:",
@@ -18,4 +17,5 @@ export async function GET() {
     process.env.EE_PRIVATE_KEY?.slice(-30)
   );
   await ensureEE();
+  return new Response(JSON.stringify({ ok: true }), { status: 200 });
 }

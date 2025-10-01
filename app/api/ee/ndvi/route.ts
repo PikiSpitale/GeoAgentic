@@ -7,7 +7,7 @@ import "server-only";
 import type { Feature, Geometry } from "geojson";
 import { ensureEE, ee } from "@/lib/ee";
 
-function maskS2sr(img: ee.Image): ee.Image {
+function maskS2sr(img: any): any {
   // Probabilidad de nubes < 40%
   const cldOk = img.select("MSK_CLDPRB").lt(40);
 

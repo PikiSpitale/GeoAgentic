@@ -1,13 +1,51 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 
 export default function NDVIMapLibre() {
   const mapContainer = useRef<HTMLDivElement | null>(null);
+  const [tileUrl, setTileUrl] = useState<string | null>(null);
 
+  // pedir tiles al backend
   useEffect(() => {
-    if (!mapContainer.current) return;
+    async function fetchTiles() {
+      const res = await fetch("/api/ee/ndvi", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          feature: {
+            type: "Feature",
+            geometry: {
+              type: "Polygon",
+              coordinates: [
+                [
+                  [-60.3516, -33.2543],
+                  [-60.3516, -33.2983],
+                  [-60.2924, -33.2983],
+                  [-60.2924, -33.2543],
+                  [-60.3516, -33.2543],
+                ],
+              ],
+            },
+          },
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok && data.map?.urlFormat) {
+        setTileUrl(data.map.urlFormat);
+      } else {
+        console.error("No se pudo obtener el tileUrl", data);
+      }
+    }
+
+    fetchTiles();
+  }, []);
+
+  // crear mapa una vez que tenemos urlFormat
+  useEffect(() => {
+    if (!mapContainer.current || !tileUrl) return;
 
     const map = new maplibregl.Map({
       container: mapContainer.current,
@@ -16,9 +54,7 @@ export default function NDVIMapLibre() {
         sources: {
           "ndvi-tiles": {
             type: "raster",
-            tiles: [
-              "https://earthengine.googleapis.com/map/projects/earthengine-legacy/maps/9501bac2683800aed7c08081fc6cc4de-e31f98a0382bad1f2c6be2c3bb3a6eed/{z}/{x}/{y}?token=",
-            ],
+            tiles: [tileUrl], // 👈 ahora sí
             tileSize: 256,
           },
         },
@@ -27,16 +63,15 @@ export default function NDVIMapLibre() {
             id: "ndvi-layer",
             type: "raster",
             source: "ndvi-tiles",
-            paint: {},
           },
         ],
       },
-      center: [-60.32, -33.27], // tu polígono
+      center: [-60.32, -33.27],
       zoom: 12,
     });
 
     return () => map.remove();
-  }, []);
+  }, [tileUrl]);
 
   return <div ref={mapContainer} className="w-full h-full" />;
 }
