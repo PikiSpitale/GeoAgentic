@@ -2,15 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 
-export default function NDVIMapLibre() {
+export default function SARMapLibre() {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const [tileUrl, setTileUrl] = useState<string | null>(null);
 
-  // pedir tiles al backend
+  // Pedir tiles al backend SAR
   useEffect(() => {
     async function fetchTiles() {
-      const res = await fetch("/api/ee/ndvi", {
+      const res = await fetch("/api/ee/sar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -33,43 +34,54 @@ export default function NDVIMapLibre() {
       });
 
       const data = await res.json();
-      if (data.ok && data.titleUrl) {
-        setTileUrl(data.titleUrl);
+      if (data.ok && data.tileUrl) {
+        console.log("[tileUrl recibido]", data.tileUrl);
+        setTileUrl(data.tileUrl);
       } else {
-        console.error("No se pudo obtener el tileUrl", data);
+        console.error("Error al cargar tiles SAR:", data);
       }
     }
 
     fetchTiles();
   }, []);
 
-  // crear mapa una vez que tenemos urlFormat
+  // Crear mapa y agregar tiles SAR
   useEffect(() => {
-    if (!mapContainer.current || !tileUrl) return;
+    if (!mapContainer.current) return;
 
     const map = new maplibregl.Map({
       container: mapContainer.current,
-      style: {
-        version: 8,
-        sources: {
-          "ndvi-tiles": {
-            type: "raster",
-            tiles: [tileUrl], // 👈 ahora sí
-            tileSize: 256,
-          },
-        },
-        layers: [
-          {
-            id: "ndvi-layer",
-            type: "raster",
-            source: "ndvi-tiles",
-          },
-        ],
-      },
+      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json", // 🌍 basemap
       center: [-60.32, -33.27],
       zoom: 12,
     });
 
+    map.on("load", () => {
+      if (!tileUrl) return;
+
+      // Fuente SAR
+      map.addSource("sar-tiles", {
+        type: "raster",
+        tiles: [tileUrl], // 👈 Earth Engine tileUrl con paleta
+        tileSize: 256,
+      });
+
+      // Capa SAR encima del basemap
+      map.addLayer({
+        id: "sar-layer",
+        type: "raster",
+        source: "sar-tiles",
+      });
+    });
+    map.on("sourcedata", (e) => {
+      if (e.sourceId === "sar-tiles" && e.isSourceLoaded) {
+        console.log("✅ SAR tiles cargados", e);
+      }
+    });
+
+    map.on("error", (err) => {
+      console.error("❌ MapLibre error:", err);
+    });
     return () => map.remove();
   }, [tileUrl]);
 
