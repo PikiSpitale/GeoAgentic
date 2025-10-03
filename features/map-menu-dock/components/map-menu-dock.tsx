@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -25,6 +26,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GeoTiffImportDialog } from "@/features/file-import/components/geo-tiff-import-dialog";
 import { NdviAnalysisDialog } from "@/features/geospatial-analysis/components/ndvi-analysis-dialog";
 import type { NdviAnalysisResult } from "@/features/geospatial-analysis/actions/perform-ndvi-analysis";
+import { useRasterLayersStore } from "@/features/map-layers/store/raster-layers-store";
+import { useDrawStore } from "@/features/map-draw/store/draw-store";
+import { LayerManagerDialog } from "@/features/map-layers/components/layers-manager-dialog";
+import { RviAnalysisDialog } from "@/features/geospatial-analysis/components/rvi-analysis-dialog";
 
 interface MapMenuDockProps {
   selectedGeometryType: string | null;
@@ -69,6 +74,9 @@ export function MapMenuDock({
     result: NdviAnalysisResult,
     layerName?: string
   ) => {};
+
+  const addDrawnLayer = useRasterLayersStore((state) => state.addDrawnLayer);
+  const drawnFeature = useDrawStore((state) => state.drawnFeature);
 
   return (
     <>
@@ -261,6 +269,19 @@ export function MapMenuDock({
                   >
                     Calculate Centroid
                   </Button>
+                  <Button
+                    onClick={() => {
+                      if (drawnFeature) {
+                        addDrawnLayer(drawnFeature as any, "Layer");
+                      } else {
+                        alert("Primero dibuja un polígono");
+                      }
+                    }}
+                    disabled={selectedGeometryType !== "Polygon"}
+                    variant="ghost"
+                  >
+                    Create Layer
+                  </Button>
 
                   {/* Divider for Raster Tools */}
                   <div className="pt-2 mt-2 border-t border-indigo-200/50 dark:border-indigo-700/30">
@@ -279,6 +300,16 @@ export function MapMenuDock({
                         Analysis
                       </Button>
                     </NdviAnalysisDialog>
+                    <RviAnalysisDialog>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-left rounded-lg transition-all duration-200 hover:bg-white/80 dark:hover:bg-slate-800/80 hover:text-green-600 dark:hover:text-green-400"
+                      >
+                        <Leaf className="mr-2 h-4 w-4 text-green-500" /> RVI
+                        Analysis
+                      </Button>
+                    </RviAnalysisDialog>
+
                     {/* Add other raster analysis tools here */}
                   </div>
                 </div>
@@ -315,31 +346,30 @@ export function MapMenuDock({
             </Button>
 
             {/* Layer Manager Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "h-11 w-11 rounded-xl transition-all duration-300 relative overflow-hidden group",
-                "hover:bg-slate-100/60 dark:hover:bg-slate-800/60"
-              )}
-              title="Layer Manager"
-              onClick={() =>
-                setActiveButton(activeButton === "layers" ? null : "layers")
-              }
-            >
-              <Layers
+            <LayerManagerDialog>
+              <Button
+                variant="ghost"
+                size="icon"
                 className={cn(
-                  "h-5 w-5 transition-all duration-300 group-hover:scale-110 text-blue-500"
+                  "h-11 w-11 rounded-xl transition-all duration-300 relative overflow-hidden group",
+                  "hover:bg-slate-100/60 dark:hover:bg-slate-800/60"
                 )}
-              />
-              {activeButton === "layers" && (
-                <motion.div
-                  layoutId="activeIndicator"
-                  className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1/2 bg-blue-500 rounded-full"
+                title="Layer Manager"
+              >
+                <Layers
+                  className={cn(
+                    "h-5 w-5 transition-all duration-300 group-hover:scale-110 text-blue-500"
+                  )}
                 />
-              )}
-              <span className="sr-only">Layer Manager</span>
-            </Button>
+                {activeButton === "layers" && (
+                  <motion.div
+                    layoutId="activeIndicator"
+                    className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1/2 bg-blue-500 rounded-full"
+                  />
+                )}
+                <span className="sr-only">Layer Manager</span>
+              </Button>
+            </LayerManagerDialog>
 
             {/* File Import Button now uses GeoTiffImportDialog */}
             <GeoTiffImportDialog>

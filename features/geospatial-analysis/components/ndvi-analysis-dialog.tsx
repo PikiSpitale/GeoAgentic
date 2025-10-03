@@ -209,8 +209,12 @@ export function NdviAnalysisDialog({
                       value={layer.id}
                       className="hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-teal-50 dark:focus:bg-teal-700/30"
                     >
-                      {layer.name} (
-                      {(layer.file.size / (1024 * 1024)).toFixed(2)} MB)
+                      {layer.name}
+                      {layer.file
+                        ? ` (${(layer.file.size / (1024 * 1024)).toFixed(
+                            2
+                          )} MB)`
+                        : " (drawn layer)"}
                     </SelectItem>
                   ))}
                 </SelectContent>
